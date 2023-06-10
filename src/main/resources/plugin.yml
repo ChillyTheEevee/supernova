@@ -1,0 +1,14 @@
+name: Supernova
+version: '${project.version}'
+main: world.sc2.supernova.Supernova
+api-version: 1.19
+commands:
+  supernova:
+    description: Opens the Supernova GUI for lore block creation
+    permission: supernova.lore-creation
+    permission-message: Wrong game...
+    usage: /<command> [test|stop]
+permissions:
+  supernova.lore-creation:
+    description: Allows you to use Supernova features with the /supernova GUI
+    default: op
