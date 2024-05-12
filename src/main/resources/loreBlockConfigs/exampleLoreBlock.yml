@@ -1,0 +1,12 @@
+# This config file shows you an example of how to use the config files of this plugin.
+
+# Write all commands in sequential order
+# When writing commands, do NOT type the forward slash character.
+# You must surround all commands with quotes (ex. "kill Umbr4_")
+# When using commands with a " character, you must place a / in front of the quote (i.e. "say \"This is a quote\"").
+
+# The following config shows you how to make a FurryEliminator lore block.
+commands:
+  - "tellraw @a [\"\",{\"text\":\"[\"},{\"text\":\"ExampleLoreBlock\",\"color\":\"gold\"},{\"text\":\"] Removing all furries from SC2...\"}]"
+  - "kill ChillyTheEevee"
+  - "w ChillyTheEevee i'm sorry boss..."

@@ -1,0 +1,10 @@
+description: Creates a lore block that, when activated, will run the commands listed in its corresponding config.
+usage: "/sn createloreblock <identifier>"
+permission:
+  - "supernova.createloreblock"
+
+messages:
+  successful_lore_block_creation: "&aSuccessfully created lore block with identifier \"%s\"."
+  warning_unspecified_identifier: "&cYou must provide an identifier for the lore block."
+  warning_whitespace_in_identifier: "&cYour lore block identifier must not contain whitespace."
+  warning_non_player_sender: "&cOnly players can use this command."
