@@ -59,7 +59,6 @@ public class LoreBlockManager {
             return;
         }
         event.setCancelled(true);
-        Bukkit.getLogger().info("Cancelled the event...");
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
 
@@ -86,12 +85,10 @@ public class LoreBlockManager {
      * @param event The BlockPlaceEvent to handle
      */
     public void onBlockPlaceEvent(BlockPlaceEvent event) {
-        Bukkit.getLogger().info("onBlockPlaceEvent() called!");
         ItemStack itemToPlace = event.getItemInHand();
         if (!isLoreBlock(itemToPlace)) {
             return;
         }
-        Bukkit.getLogger().info("Placed a lore block. Copying data...");
         Block blockPlaced = event.getBlockPlaced();
         if (!(blockPlaced.getState() instanceof Jigsaw loreBlock)) {
             Bukkit.getLogger().warning("Error transferring lore block data when placed: Placed block is not a " +
@@ -101,7 +98,6 @@ public class LoreBlockManager {
         loreBlockIdentifierTag.applyTag(loreBlock, loreBlockIdentifierTag.getStoredData(itemToPlace));
     }
 
-    // todo make it so that running this does not overwrite already existent commands.
     public ItemStack createLoreBlock(String newLoreBlockIdentifier) {
         ItemStack loreBlock = new ItemStack(Material.JIGSAW);
         ItemMeta loreBlockMeta = loreBlock.getItemMeta();
