@@ -1,5 +1,6 @@
 package world.sc2.supernova.managers;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -10,16 +11,22 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import world.sc2.config.Config;
 import world.sc2.config.ConfigManager;
 import world.sc2.nbt.NBTTag;
+import world.sc2.utility.ChatUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class LoreBlockManager {
 
+    private static final String MISSING_LORE_BLOCK_CONFIG_MESSAGE = "&cThis lore block (identifier=%s) does not have" +
+            " a valid config file.";
     private static final String LORE_BLOCK_CONFIG_NAME_TAG_KEY = "loreBlockID";
     private static final String LORE_BLOCK_CONFIG_DIRECTORY_NAME = "loreBlockConfigs";
     private static final String LORE_BLOCK_CONFIG_COMMANDS_KEY = "commands";
@@ -48,6 +55,11 @@ public class LoreBlockManager {
             return;
         if  (!isLoreBlock(event.getClickedBlock()))
             return;
+        if (event.getPlayer().isSneaking()) {
+            return;
+        }
+        event.setCancelled(true);
+        Bukkit.getLogger().info("Cancelled the event...");
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
 
@@ -55,7 +67,8 @@ public class LoreBlockManager {
                 + "/" + loreBlockIdentifier + ".yml").get();
 
         if (!loreBlockConfig.contains(LORE_BLOCK_CONFIG_COMMANDS_KEY)) {
-            Bukkit.getLogger().warning("Lore block clicked does not have commands in the Config file!");
+            event.getPlayer().sendActionBar(
+                    ChatUtils.chat(String.format(MISSING_LORE_BLOCK_CONFIG_MESSAGE, loreBlockIdentifier)));
             return;
         }
 
@@ -91,11 +104,25 @@ public class LoreBlockManager {
     // todo make it so that running this does not overwrite already existent commands.
     public ItemStack createLoreBlock(String newLoreBlockIdentifier) {
         ItemStack loreBlock = new ItemStack(Material.JIGSAW);
+        ItemMeta loreBlockMeta = loreBlock.getItemMeta();
+        // Changing the display name
+        Component displayName = Component.text(ChatUtils.chat("&dLore Block"));
+        loreBlockMeta.displayName(displayName);
+
+        // Changing the lore to show identifier
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(ChatUtils.chat("&7&oidentifier="+newLoreBlockIdentifier)));
+        loreBlockMeta.lore(lore);
+
+        loreBlock.setItemMeta(loreBlockMeta);
+
         loreBlockIdentifierTag.applyTag(loreBlock, newLoreBlockIdentifier);
         Config newLoreBlockConfig = configManager.getConfig(LORE_BLOCK_CONFIG_DIRECTORY_NAME + "/" +
                 newLoreBlockIdentifier + ".yml");
-        newLoreBlockConfig.set(LORE_BLOCK_CONFIG_COMMANDS_KEY, new ArrayList<>());
-        newLoreBlockConfig.save();
+        if (!newLoreBlockConfig.get().contains(LORE_BLOCK_CONFIG_COMMANDS_KEY)) {
+            newLoreBlockConfig.set(LORE_BLOCK_CONFIG_COMMANDS_KEY, new ArrayList<>());
+            newLoreBlockConfig.save();
+        }
         return loreBlock;
     }
 
