@@ -1,14 +1,24 @@
 name: Supernova
 version: '${project.version}'
 main: world.sc2.supernova.Supernova
-api-version: 1.19
+api-version: '1.20'
+author: ChillyTheEevee
+description: With its name inspired by a certain 2019 Indie game, Supernova is a Paper plugin that 
+  allows for the seamless creation of Lore Blocks in Minecraft.
 commands:
   supernova:
-    description: Opens the Supernova GUI for lore block creation
-    permission: supernova.lore-creation
-    permission-message: Wrong game...
-    usage: /<command> [test|stop]
+    description: Base command for Supernova command
+    usage: /sn <subcommand>
+    aliases:
+      - sn
+
 permissions:
-  supernova.lore-creation:
-    description: Allows you to use Supernova features with the /supernova GUI
+  supernova.help:
+    description: Grants the player the ability to use the /sn help command
+    default: op
+  supernova.reload:
+    description: Grants the player the ability to use the /sn reload command
+    default: op
+  supernova.createloreblock:
+    description: Grants the player the ability to use the /sn createloreblock command
     default: op
