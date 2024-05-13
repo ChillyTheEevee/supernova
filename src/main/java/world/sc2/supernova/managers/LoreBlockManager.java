@@ -55,10 +55,10 @@ public class LoreBlockManager {
             return;
         if  (!isLoreBlock(event.getClickedBlock()))
             return;
+        event.setCancelled(true);
         if (event.getPlayer().isSneaking()) {
             return;
         }
-        event.setCancelled(true);
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
 
