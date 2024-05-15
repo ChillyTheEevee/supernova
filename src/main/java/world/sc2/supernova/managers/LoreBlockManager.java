@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -49,6 +50,8 @@ public class LoreBlockManager {
      * @param event The PlayerInteractEvent to handle.
      */
     public void onPlayerInteractEvent(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND)
+            return;
         if (!event.hasBlock())
             return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
@@ -56,9 +59,8 @@ public class LoreBlockManager {
         if  (!isLoreBlock(event.getClickedBlock()))
             return;
         event.setCancelled(true);
-        if (event.getPlayer().isSneaking()) {
+        if (event.getPlayer().isSneaking())
             return;
-        }
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
 
