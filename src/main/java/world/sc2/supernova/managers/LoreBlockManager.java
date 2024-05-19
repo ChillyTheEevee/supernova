@@ -7,6 +7,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.Jigsaw;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -14,7 +15,8 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import world.sc2.config.Config;
 import world.sc2.config.ConfigManager;
 import world.sc2.nbt.NBTTag;
@@ -23,6 +25,8 @@ import world.sc2.utility.ChatUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LoreBlockManager {
 
@@ -33,12 +37,15 @@ public class LoreBlockManager {
     private static final String LORE_BLOCK_CONFIG_COMMANDS_KEY = "commands";
 
     // Dependencies
+    private final Plugin plugin;
     private final ConfigManager configManager;
 
     // Fields
     private final NBTTag<String, String> loreBlockIdentifierTag;
+    private final Pattern delayCommandRegex = Pattern.compile("delay (\\d+)");
 
-    public LoreBlockManager(JavaPlugin plugin, ConfigManager configManager) {
+    public LoreBlockManager(Plugin plugin, ConfigManager configManager) {
+        this.plugin = plugin;
         this.configManager = configManager;
         this.loreBlockIdentifierTag = new NBTTag<>(new NamespacedKey(plugin, LORE_BLOCK_CONFIG_NAME_TAG_KEY), PersistentDataType.STRING);
 
@@ -58,27 +65,15 @@ public class LoreBlockManager {
             return;
         if  (!isLoreBlock(event.getClickedBlock()))
             return;
+
         event.setCancelled(true);
-        if (event.getPlayer().isSneaking())
+        Player player = event.getPlayer();
+        if (player.isSneaking())
             return;
+
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
-
-        YamlConfiguration loreBlockConfig = configManager.getConfig(LORE_BLOCK_CONFIG_DIRECTORY_NAME
-                + "/" + loreBlockIdentifier + ".yml").get();
-
-        if (!loreBlockConfig.contains(LORE_BLOCK_CONFIG_COMMANDS_KEY)) {
-            event.getPlayer().sendActionBar(
-                    ChatUtils.chat(String.format(MISSING_LORE_BLOCK_CONFIG_MESSAGE, loreBlockIdentifier)));
-            return;
-        }
-
-        List<String> commandsToExecute = loreBlockConfig.getStringList(LORE_BLOCK_CONFIG_COMMANDS_KEY);
-
-        for (String command : commandsToExecute) {
-            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
-        }
-
+        executeLoreBlock(player, loreBlockIdentifier);
     }
 
     /**
@@ -100,6 +95,11 @@ public class LoreBlockManager {
         loreBlockIdentifierTag.applyTag(loreBlock, loreBlockIdentifierTag.getStoredData(itemToPlace));
     }
 
+    /**
+     * Creates a lore block with the given identifier
+     * @param newLoreBlockIdentifier The identifier to give the lore block
+     * @return An ItemStack representation of the newly created lore block
+     */
     public ItemStack createLoreBlock(String newLoreBlockIdentifier) {
         ItemStack loreBlock = new ItemStack(Material.JIGSAW);
         ItemMeta loreBlockMeta = loreBlock.getItemMeta();
@@ -122,6 +122,45 @@ public class LoreBlockManager {
             newLoreBlockConfig.save();
         }
         return loreBlock;
+    }
+
+    /**
+     * Executes the lore block specified as if the given player interacted with it.
+     * @param player The player who activated the lore block
+     * @param loreBlockIdentifier The identifier specified with the lore block
+     */
+    public void executeLoreBlock(Player player, String loreBlockIdentifier) {
+        YamlConfiguration loreBlockConfig = configManager.getConfig(LORE_BLOCK_CONFIG_DIRECTORY_NAME
+                + "/" + loreBlockIdentifier + ".yml").get();
+
+        if (!loreBlockConfig.contains(LORE_BLOCK_CONFIG_COMMANDS_KEY)) {
+            player.sendActionBar(
+                    ChatUtils.chat(String.format(MISSING_LORE_BLOCK_CONFIG_MESSAGE, loreBlockIdentifier)));
+            return;
+        }
+
+        long tickDelay = 0L;
+        List<String> commandsToExecute = loreBlockConfig.getStringList(LORE_BLOCK_CONFIG_COMMANDS_KEY);
+
+        for (String command : commandsToExecute) {
+            Matcher delayCommandMatcher = delayCommandRegex.matcher(command);
+            if (delayCommandMatcher.find()) {
+                long ticksToAdd = Long.parseLong(delayCommandMatcher.group(1));
+                tickDelay += ticksToAdd;
+                continue;
+            }
+            if (tickDelay == 0L) {
+                Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
+            } else {
+                BukkitRunnable bukkitRunnable = new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
+                    }
+                };
+                bukkitRunnable.runTaskLater(plugin, tickDelay);
+            }
+        }
     }
 
     /**
