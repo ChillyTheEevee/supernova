@@ -22,9 +22,7 @@ import world.sc2.config.ConfigManager;
 import world.sc2.nbt.NBTTag;
 import world.sc2.utility.ChatUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,11 +41,12 @@ public class LoreBlockManager {
     // Fields
     private final NBTTag<String, String> loreBlockIdentifierTag;
     private final Pattern delayCommandRegex = Pattern.compile("delay (\\d+)");
-
+    private final Set<String> currentlyExecutingLoreBlockSet;
     public LoreBlockManager(Plugin plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.loreBlockIdentifierTag = new NBTTag<>(new NamespacedKey(plugin, LORE_BLOCK_CONFIG_NAME_TAG_KEY), PersistentDataType.STRING);
+        this.currentlyExecutingLoreBlockSet = new HashSet<>();
 
         generateExampleLoreBlockConfig();
     }
@@ -73,7 +72,10 @@ public class LoreBlockManager {
 
         Jigsaw jigsaw = (Jigsaw) Objects.requireNonNull(event.getClickedBlock()).getState();
         String loreBlockIdentifier = loreBlockIdentifierTag.getStoredData(jigsaw);
-        executeLoreBlock(player, loreBlockIdentifier);
+
+        if (!currentlyExecutingLoreBlockSet.contains(loreBlockIdentifier)) {
+            executeLoreBlock(player, loreBlockIdentifier);
+        }
     }
 
     /**
@@ -160,6 +162,17 @@ public class LoreBlockManager {
                 };
                 bukkitRunnable.runTaskLater(plugin, tickDelay);
             }
+        }
+
+        if (tickDelay != 0L) {
+            currentlyExecutingLoreBlockSet.add(loreBlockIdentifier);
+            BukkitRunnable bukkitRunnable = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    currentlyExecutingLoreBlockSet.remove(loreBlockIdentifier);
+                }
+            };
+            bukkitRunnable.runTaskLater(plugin, tickDelay);
         }
     }
 
